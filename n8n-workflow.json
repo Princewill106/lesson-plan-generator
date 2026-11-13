@@ -1,0 +1,144 @@
+{
+  "name": "Lesson Plan Generator (AI Automation Projects #27)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lesson-plan",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "30fd0adf-1646-529d-b818-5dd85134db42",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "300cc6ef-92e3-5ac4-970c-3382e7f147eb"
+    },
+    {
+      "parameters": {},
+      "id": "035a9cb1-e749-5937-ad4e-a7a05b5d4fcf",
+      "name": "Test with sample data",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sample data from this repo. Click 'Test workflow' to run the whole flow on it.\nconst sample = [\n {\n  \"week\": 1,\n  \"subject\": \"Computer Studies\",\n  \"class\": \"JSS2\",\n  \"topic\": \"Introduction to Automation\",\n  \"subtopics\": [\n   \"Triggers\",\n   \"Actions\",\n   \"Workflows\"\n  ],\n  \"minutes\": 40,\n  \"resources\": [\n   \"projector\",\n   \"laptops\",\n   \"sample n8n workflow\"\n  ]\n },\n {\n  \"week\": 1,\n  \"subject\": \"Basic Technology\",\n  \"class\": \"JSS3\",\n  \"topic\": \"Sensors and Microcontrollers\",\n  \"subtopics\": [\n   \"Sensors\",\n   \"Inputs and outputs\",\n   \"Control circuits\"\n  ],\n  \"minutes\": 80,\n  \"resources\": [\n   \"Arduino kits\",\n   \"LEDs\",\n   \"LDR sensors\"\n  ]\n },\n {\n  \"week\": 2,\n  \"subject\": \"Computer Studies\",\n  \"class\": \"SS1\",\n  \"topic\": \"Artificial Intelligence\",\n  \"subtopics\": [\n   \"Machine learning\",\n   \"Training data\",\n   \"Chatbots\"\n  ],\n  \"minutes\": 40,\n  \"resources\": [\n   \"projector\",\n   \"Teachable Machine\"\n  ]\n }\n];\nreturn sample.map(json => ({ json }));"
+      },
+      "id": "7a6aba43-6cff-5551-a45d-ba5f5b3406a6",
+      "name": "Sample data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lesson Plan Generator: core logic (ported from main.py)\n\n// ---- input normaliser (works for Webhook, Form, WhatsApp, Gmail, Sheets and sample data)\nconst input = $input.all().flatMap(i => {\n  const j = i.json || {};\n  if (j.messages && Array.isArray(j.messages)) {           // WhatsApp Trigger\n    return j.messages.filter(m => m.text).map(m => ({ from: '+' + m.from, text: m.text.body }));\n  }\n  if (j.Subject !== undefined || j.From !== undefined) {     // Gmail Trigger (simple)\n    return [{ from: (j.From || '').replace(/.*<|>.*/g, ''), subject: j.Subject || '', body: j.snippet || j.text || '' }];\n  }\n  const b = (j.body !== undefined && j.headers !== undefined) ? j.body : j;   // Webhook wraps payload in body\n  if (Array.isArray(b)) return b;\n  if (b && Array.isArray(b.items)) return b.items;\n  return [b];\n});\n\nconst PHASES = [['Starter', 0.10], ['Teach', 0.25], ['Guided practice', 0.25], ['Independent task', 0.25], ['Plenary & exit ticket', 0.15]];\nreturn input.map(l => {\n  const mins = PHASES.map(([, p]) => Math.round(l.minutes * p)); mins[mins.length - 1] += l.minutes - mins.reduce((a, b) => a + b, 0);\n  const s0 = l.subtopics[0].toLowerCase(), sN = l.subtopics[l.subtopics.length - 1].toLowerCase(), t = l.topic.toLowerCase();\n  const acts = { 'Starter': `Question on the board: 'Where have you seen ${t} in daily life?' Pairs share.`,\n    'Teach': `Explain ${l.subtopics.join(', ')} with a worked example and a diagram.`,\n    'Guided practice': `Class works through an example of ${s0} together; check with mini whiteboards.`,\n    'Independent task': `Learners complete a short task applying ${sN}.`, 'Plenary & exit ticket': 'Learners answer the exit-ticket questions.' };\n  const md = [`# ${l.subject}: ${l.topic}`, '', `**Class:** ${l.class} · **Duration:** ${l.minutes} minutes · **Week ${l.week}**`, '',\n    '## Objectives', '', `1. Identify the key terms in ${t}`, `2. Explain how ${s0} works using an example`, `3. Design a simple ${sN} for a real problem`, '',\n    '## Lesson sequence', '', '| Phase | Minutes | Activity |', '|---|---:|---|', ...PHASES.map(([n], i) => `| ${n} | ${mins[i]} | ${acts[n]} |`), '',\n    '## Differentiation', '', `- Support: worked example and sentence starters for ${s0}.`, `- Stretch: compare two approaches to ${sN} and justify the better one.`, '',\n    '## Resources', '', '- ' + l.resources.join(', '), '', '## Exit ticket', '', `- What is ${s0}?`, `- Give one real example of ${t}.`, '- What are you still unsure about?'].join('\\n');\n  return { json: { class: l.class, topic: l.topic, minutes_check: mins.reduce((a, b) => a + b, 0), lesson_note: md } };\n});\n"
+      },
+      "id": "96f1627c-be44-5ed8-a39f-43d1ab9f7ef9",
+      "name": "Logic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "6aa37578-4eb1-5c2c-8f69-5afc1914ca47",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Lesson Plan Generator\nTopic, class and duration in; a timed, structured lesson plan with objectives, activities and assessment out.\n\nPOST lessons `{week, subject, class, topic, subtopics[], minutes, resources[]}`. Returns a structured lesson note per lesson: Bloom's-aligned objectives, phase timings that always add up, support and stretch tasks and exit-ticket questions, as Markdown ready for a Google Doc node.\n\n**Try it:** click *Test workflow* to run on the sample data. Then connect your credentials on the output nodes and activate.\n\nCode and docs: github.com/Princewill106/lesson-plan-generator",
+        "height": 340,
+        "width": 420,
+        "color": 5
+      },
+      "id": "d66b37b9-a189-5ddb-adbc-d8b9bbdfb5e9",
+      "name": "About this workflow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -460
+      ]
+    }
+  ],
+  "connections": {
+    "Test with sample data": {
+      "main": [
+        [
+          {
+            "node": "Sample data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sample data": {
+      "main": [
+        [
+          {
+            "node": "Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Logic": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

@@ -1,0 +1,5 @@
+[
+ {"week": 1, "subject": "Computer Studies", "class": "JSS2", "topic": "Introduction to Automation", "subtopics": ["Triggers", "Actions", "Workflows"], "minutes": 40, "resources": ["projector", "laptops", "sample n8n workflow"]},
+ {"week": 1, "subject": "Basic Technology", "class": "JSS3", "topic": "Sensors and Microcontrollers", "subtopics": ["Sensors", "Inputs and outputs", "Control circuits"], "minutes": 80, "resources": ["Arduino kits", "LEDs", "LDR sensors"]},
+ {"week": 2, "subject": "Computer Studies", "class": "SS1", "topic": "Artificial Intelligence", "subtopics": ["Machine learning", "Training data", "Chatbots"], "minutes": 40, "resources": ["projector", "Teachable Machine"]}
+]
